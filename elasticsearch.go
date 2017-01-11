@@ -7,9 +7,11 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+
+	proc "github.com/sapk-fork/spwd/proc"
 )
 
-func elasticsearch(inProc ProcAll, sendProcesses bool) {
+func elasticsearch(inProc proc.ProcAll, sendProcesses bool) {
 	if !Conf.Elasticsearch.Send {
 		return
 	}

@@ -1,4 +1,4 @@
-package main
+package proc
 
 import (
 	"bufio"
@@ -275,7 +275,7 @@ func (p *Proc) calcLoad(stat ProcStat, nstat ProcStat) ProcLoad {
 	return ProcLoad{trun(dUser / div), trun(dNice / div), trun(dSystem / div), trun(dIdle / div), trun((dUser + dNice + dSystem) / div), div}
 }
 
-func checkVersion(version int64) bool {
+func CheckVersion(version int64) bool {
 	verString := readOneLine(PROC_SYS_KERNEL_OS)
 	verValue := regexp.MustCompile(`^(\d+)\.(\d+)[^\d].*$`).ReplaceAllString(verString, "$1$2")
 	verInt, _ := parseInt64(verValue)

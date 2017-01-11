@@ -15,9 +15,11 @@ import (
 	synca "sync/atomic"
 	"syscall"
 	"time"
+
+	proc "github.com/sapk-fork/spwd/proc"
 )
 
-import gcfg "code.google.com/p/gcfg"
+import gcfg "gopkg.in/gcfg.v1"
 
 const KERNEL_VERSION = 26
 
@@ -41,7 +43,7 @@ var sendFlag int32
 
 var dataPeriod int32
 
-var proc ProcAll
+var pc proc.ProcAll
 
 var procJson []byte
 
@@ -114,7 +116,7 @@ var timeToReload = %v;
 `
 var senders = []Sender{}
 
-type Sender func(proc ProcAll, sendProcesses bool)
+type Sender func(pc proc.ProcAll, sendProcesses bool)
 
 func initConf() {
 	if _, err := os.Stat(*config); os.IsNotExist(err) {
@@ -164,8 +166,8 @@ func procUpdater() {
 			dataPeriod = WAIT_DATA_PERIOD + 1
 		}
 		mutex.Lock()
-		proc.Update()
-		procJson, _ = json.Marshal(proc)
+		pc.Update()
+		procJson, _ = json.Marshal(pc)
 		mutex.Unlock()
 		synca.StoreInt32(&dataFlag, NO_DATA)
 		dataPeriod--
@@ -179,7 +181,7 @@ var sendChan = make(chan int)
 func procSender() {
 	for {
 		<-sendChan
-		localProc := ProcAll{}
+		localProc := proc.ProcAll{}
 		localProc.Init()
 		localProc.HostId = Conf.Elasticsearch.HostId
 		time.Sleep(time.Millisecond * Conf.Main.UpdateInterval)
@@ -287,7 +289,7 @@ func notAllow(w http.ResponseWriter, r *http.Request) bool {
 }
 
 func main() {
-	if !checkVersion(KERNEL_VERSION) {
+	if !proc.CheckVersion(KERNEL_VERSION) {
 		log.Fatal("Invalid kernel version!")
 	}
 	flag.Parse()
@@ -309,8 +311,8 @@ func main() {
 		{"/root", "text/html", "root.html"},
 		{"/favicon.ico", "image/x-icon", "favicon.ico"},
 	}
-	proc.Init()
-	proc.HostId = Conf.Elasticsearch.HostId
+	pc.Init()
+	pc.HostId = Conf.Elasticsearch.HostId
 
 	dataPeriod = WAIT_DATA_PERIOD
 

@@ -40,32 +40,35 @@ func netDataDiff(od NetData, nd NetData) NetData {
 	return diff
 }
 
-func getDev(name string, devs []NetDev) NetDev {
-	for _, d := range devs {
-		if d.Name == name {
-			return d
+func getDev(name string, devs map[string]NetDev) NetDev {
+	return devs[name]
+	/*
+		for _, d := range devs {
+			if d.Name == name {
+				return d
+			}
 		}
-	}
-	return NetDev{}
+		return NetDev{}
+	*/
 }
 
+//Net struct to contain all network fnformation
 type Net struct {
-	All []NetDev
+	List map[string]NetDev
 }
 
+//Init prepare list of network
 func (n *Net) Init() {
-	n.All = []NetDev{}
 	n.Update()
 }
 
+//Update refresh list of network
 func (n *Net) Update() {
-	newDevs := readNetDevs(n.All)
-	n.All = nil
-	n.All = newDevs
+	n.List = readNetDevs(n.List)
 }
 
-func readNetDevs(old []NetDev) []NetDev {
-	netDevs := []NetDev{}
+func readNetDevs(old map[string]NetDev) map[string]NetDev {
+	netDevs := map[string]NetDev{}
 	devMap, _ := readFileMap([]string{`[\w]+`}, PROC_NET_DATA, `:`)
 	for key, value := range devMap {
 		vals := regexp.MustCompile(`[\s]+`).Split(strings.TrimSpace(value), -1)
@@ -74,7 +77,9 @@ func readNetDevs(old []NetDev) []NetDev {
 			dataReceiveDiff := netDataDiff(getDev(key, old).Receive, dataReceive)
 			dataTransmit := readNetData(vals, 8)
 			dataTransmitDiff := netDataDiff(getDev(key, old).Transmit, dataTransmit)
-			netDevs = append(netDevs, NetDev{Name: key, Receive: dataReceive, Transmit: dataTransmit, ReceiveDiff: dataReceiveDiff, TransmitDiff: dataTransmitDiff})
+
+			//netDevs = append(netDevs, NetDev{Name: key, Receive: dataReceive, Transmit: dataTransmit, ReceiveDiff: dataReceiveDiff, TransmitDiff: dataTransmitDiff})
+			netDevs[key] = NetDev{Name: key, Receive: dataReceive, Transmit: dataTransmit, ReceiveDiff: dataReceiveDiff, TransmitDiff: dataTransmitDiff}
 		}
 	}
 	return netDevs

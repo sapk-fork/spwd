@@ -11,28 +11,28 @@ import (
 	"time"
 )
 
+//Processes struct to contain all processes fnformation
 type Processes struct {
-	all      map[int64]*Process
-	All      []*Process
+	/*
+		all      map[int64]*Process
+		All      []*Process
+	*/
+	List     map[string]*Process
 	Time     int64
 	TimePrev int64
 }
 
+//Init prepare list of processes
 func (pra *Processes) Init() {
-	pra.all = map[int64]*Process{}
-	pra.All = []*Process{}
+	pra.List = map[string]*Process{}
 	pra.Update()
 }
 
+//Update refresh list of processes
 func (pra *Processes) Update() {
-	pra.All = nil
-	pra.All = []*Process{}
-	pra.initProcessPidList()
+	pra.initProcessPidList() //Fill pra.List
 	pra.TimePrev = pra.Time
 	pra.Time = int64(time.Now().Unix())
-	for _, value := range pra.all {
-		pra.All = append(pra.All, value)
-	}
 }
 
 type Process struct {
@@ -49,7 +49,7 @@ type Process struct {
 	live      bool
 	ProcLoad  float32
 	MemLoad   float32
-	Uptime    int64
+	StartTime int64
 	Hostname  string
 	HostId    string
 	TimeStamp string
@@ -93,10 +93,13 @@ func (pr *Process) Update() {
 }
 
 func (pr *Process) updateLoadInfo(stat Stat, meminfo Mem, period int64) {
-	timeNow := time.Now().Unix()
-	starttime := pr.Stat["starttime"]
-	btime, _ := stat.Stats["btime"]
-	pr.Uptime = timeNow - (btime + starttime/int64(stat.Sc_clk_tck))
+	/*
+		timeNow := time.Now().Unix()
+			starttime = pr.Stat["starttime"]
+			btime, _ := stat.Stats["btime"]
+			pr.StartTime = timeNow - (btime + starttime/int64(stat.Sc_clk_tck))
+	*/
+	pr.StartTime = pr.Stat["starttime"]
 	pr.ProcLoad = trun((float32(pr.Diff["utime"]) + float32(pr.Diff["stime"])) / float32(period))
 	rss := pr.Stat["rss"]
 	pr.MemLoad = trun((float32((rss * int64(stat.Pagesize))) / (float32(meminfo.Info["MemTotal"] * 10))))
@@ -235,24 +238,26 @@ func initProcessStatNames() []string {
 }
 
 func (pra *Processes) initProcessPidList() {
-	for _, value := range pra.all {
+	for _, value := range pra.List {
 		value.live = false
 	}
 	dir, _ := ioutil.ReadDir(PROC_DIR)
 	for _, file := range dir {
 		if file.IsDir() && regexp.MustCompile("[0123456789]+").MatchString(file.Name()) {
-			pid, _ := strconv.ParseInt(file.Name(), 0, 64)
-			if proc, ok := pra.all[pid]; ok {
+			//	pid, _ := strconv.ParseInt(file.Name(), 0, 64)
+			pid := file.Name()
+			ipid, _ := strconv.ParseInt(pid, 0, 64)
+			if proc, ok := pra.List[pid]; ok {
 				proc.Init()
 			} else {
-				pra.all[pid] = &Process{Pid: pid}
-				pra.all[pid].Init()
+				pra.List[pid] = &Process{Pid: ipid}
+				pra.List[pid].Init()
 			}
 		}
 	}
-	for key, value := range pra.all {
+	for key, value := range pra.List {
 		if !value.live {
-			delete(pra.all, key)
+			delete(pra.List, key)
 		}
 	}
 }

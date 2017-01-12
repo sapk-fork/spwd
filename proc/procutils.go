@@ -34,28 +34,28 @@ type ProcCommon interface {
 }
 
 type ProcAll struct {
-	TimeStamp string
-	HostId    string
-	all       []ProcCommon
-	Stat      Stat
-	Misc      Misc
-	Meminfo   Mem
-	Kernel    Kernel
-	Processes Processes
-	AllFs     AllFs
-	Net       Net
-	DiskStats DiskStats
+	TimeStamp  string
+	HostId     string
+	all        []ProcCommon
+	Stat       Stat
+	Misc       Misc
+	Memory     Mem
+	Kernel     Kernel
+	Processes  Processes
+	FileSystem AllFs `json:"Fs,omitempty"`
+	Network    Net
+	DiskStats  DiskStats
 }
 
 func (pa *ProcAll) Init() {
 	pa.TimeStamp = time.Now().Format(time.RFC3339)
 	pa.all = []ProcCommon{
 		&pa.Stat,
-		&pa.Meminfo,
+		&pa.Memory,
 		&pa.Kernel,
 		&pa.Processes,
-		&pa.AllFs,
-		&pa.Net,
+		&pa.FileSystem,
+		&pa.Network,
 		&pa.Misc,
 		&pa.DiskStats,
 	}
@@ -68,8 +68,8 @@ func (pa *ProcAll) Update() {
 	for _, a := range pa.all {
 		a.Update()
 	}
-	for _, p := range pa.Processes.All {
-		p.updateLoadInfo(pa.Stat, pa.Meminfo, (pa.Processes.Time - pa.Processes.TimePrev))
+	for _, p := range pa.Processes.List {
+		p.updateLoadInfo(pa.Stat, pa.Memory, (pa.Processes.Time - pa.Processes.TimePrev))
 	}
 }
 

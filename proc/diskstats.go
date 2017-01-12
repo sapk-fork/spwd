@@ -12,25 +12,23 @@ const PROC_PARTITIONS = "/proc/partitions"
 
 const KERNEL26_DISKSTATS_INDEX = 2
 
+//DiskStats Information on disk stats (read, write, ...)
 type DiskStats struct {
-	All       []DiskStat
+	List      map[string]DiskStat
 	Total     IoStat
 	TotalDiff IoStat
 }
 
+//Init prepare list of stats
 func (ds *DiskStats) Init() {
-	ds.All = []DiskStat{}
-	ds.Total = IoStat{}
-	ds.TotalDiff = IoStat{}
 	ds.Update()
 }
 
+//Update refresh list of stats
 func (ds *DiskStats) Update() {
-	newStats := readDiskStats(ds.All)
-	ds.All = nil
-	ds.All = newStats
+	ds.List = readDiskStats(ds.List)
 	var tot IoStat
-	for _, d := range ds.All {
+	for _, d := range ds.List {
 		tot.ReadsCompleted += d.Stat.ReadsCompleted
 		tot.ReadsMerged += d.Stat.ReadsMerged
 		tot.SectorsRead += d.Stat.SectorsRead
@@ -82,17 +80,20 @@ func calcDiffIoStat(os IoStat, ns IoStat) IoStat {
 	}
 }
 
-func getDisk(name string, disks []DiskStat) DiskStat {
-	for _, d := range disks {
-		if d.Name == name {
-			return d
+func getDisk(name string, disks map[string]DiskStat) DiskStat {
+	return disks[strings.Replace(name, "/", "-", -1)]
+	/*
+		for _, d := range disks {
+			if d.Name == name {
+				return d
+			}
 		}
-	}
-	return DiskStat{}
+		return DiskStat{}
+	*/
 }
 
-func readDiskStats(oldStats []DiskStat) []DiskStat {
-	stats := []DiskStat{}
+func readDiskStats(oldStats map[string]DiskStat) map[string]DiskStat {
+	stats := map[string]DiskStat{}
 	inFile, _ := os.Open(PROC_DISKSTATS)
 	defer inFile.Close()
 	scanner := bufio.NewScanner(inFile)
@@ -100,7 +101,8 @@ func readDiskStats(oldStats []DiskStat) []DiskStat {
 		line := scanner.Text()
 		name, stat := parseDiskStatLine(KERNEL26_DISKSTATS_INDEX, line)
 		if !regexp.MustCompile(`ram.*|loop.*|sr.*`).MatchString(name) {
-			stats = append(stats, DiskStat{Name: name, Stat: stat, Diff: calcDiffIoStat(getDisk(name, oldStats).Stat, stat)})
+			//stats = append(stats, DiskStat{Name: name, Stat: stat, Diff: calcDiffIoStat(getDisk(name, oldStats).Stat, stat)})
+			stats[strings.Replace(name, "/", "-", -1)] = DiskStat{Name: name, Stat: stat, Diff: calcDiffIoStat(getDisk(name, oldStats).Stat, stat)}
 		}
 	}
 	return stats
